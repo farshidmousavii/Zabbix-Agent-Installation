@@ -2,6 +2,16 @@
 Start-Transcript -Path "C:\Windows\Temp\ZabbixInstall.log"
 Write-Host "Script started at $(Get-Date)"
 Write-Host "Current user context: $([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+# Specify Zabbix server/proxy IP here
+$ServerIP = "<IP-Address-Of-Zabbix>"
+# Target directory for Zabbix installation (updated path)
+$InstallPath = "C:\Program Files\Zabbix Agent 2"
+# Configuration file path
+$ConfigFile = "$InstallPath\conf\zabbix_agent2.conf"
+#Log file path
+$NewLogFilePath = "C:\Program Files\Zabbix Agent 2\zabbix_agent2.log"
+#HostMetadata configuration for auto registration
+$HostMetadata = "<HostMetadata String>"
 
 # Function to get available DC path using DNS
 function Get-AvailableDCPath {
@@ -49,10 +59,6 @@ try {
     Exit 1
 }
 
-# Target directory for Zabbix installation (updated path)
-$InstallPath = "C:\Program Files\Zabbix Agent 2"
-# Configuration file path
-$ConfigFile = "$InstallPath\conf\zabbix_agent2.conf"
 # Gets the server hostname(FQDN)
 try {
     $HostName = [System.Net.Dns]::GetHostName()
@@ -71,8 +77,6 @@ try {
     Stop-Transcript
     Exit 1
 }
-# Specify Zabbix server/proxy IP here
-$ServerIP = "<IP-Address-Of-Zabbix>"
 
 # Check if Zabbix Agent is already installed and running
 try {
@@ -121,7 +125,6 @@ try {
     if (Test-Path $ConfigFile) {
         Write-Host "Updating configuration file..."
         $config = Get-Content -Path $ConfigFile
-        $NewLogFilePath = "C:\Program Files\Zabbix Agent 2\zabbix_agent2.log"
         $config = $config -replace '127.0.0.1', $ServerIP
         $config = $config -replace 'Windows host', $ServerHostname
         # Check if a commented LogFile line exists
@@ -134,6 +137,18 @@ try {
         } else {
             Write-Host "LogFile directive not found. Adding new line..."
             $config += "LogFile=$NewLogFilePath"
+        }
+
+        # Check if a commented HostMetadata line exists
+        if ($config -match '#\s*HostMetadata=.*') {
+            Write-Host "Found commented HostMetadata directive. Uncommenting and updating..."
+            $config = $config -replace '#\s*HostMetadata=.*', "HostMetadata=$HostMetadata"
+        } elseif ($config -match '^HostMetadata=.*') {
+            Write-Host "Found existing HostMetadata directive. Updating..."
+            $config = $config -replace '^HostMetadata=.*', "HostMetadata=$HostMetadata"
+        } else {
+            Write-Host "HostMetadata directive not found. Adding new line..."
+            $config += "HostMetadata=$HostMetadata"
         }
 
         $config | Set-Content -Path $ConfigFile
