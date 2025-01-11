@@ -18,4 +18,5 @@ Computer Configuration > Windows Settings > Scripts > startup
 gpupdate /force
 ```
 
+11. You can use discovery rule and action or using auto registration in zabiix server to add hosts.
 10.  Now restart one of the servers of the domain and Zabbix agent will automatically install on server with GPO
